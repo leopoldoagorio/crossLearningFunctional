@@ -1,5 +1,5 @@
 import numpy as np
-import pandas as pd 
+import pandas as pd
 import os
 import matplotlib.pyplot as plt
 from lib.models import *
@@ -22,11 +22,11 @@ estimator['centralized'] = estimatorCovid(**estimator_vals['centralized'])
 estimator['centralized'].fitCentralized(X)
 estimator['CLParametric'] = estimatorCovid(**estimator_vals['CLParametric'])
 estimator['CLParametric'].fitParametric(X, 0.05)
-estimator['CLFunctional'] = estimatorCovid(**estimator_vals['CLParametric'])
+estimator['CLFunctional'] = estimatorCovid(**estimator_vals['CLFunctional'])
 estimator['CLFunctional'].fitFunctional(X, 80)
 
 for country in countries:
-    
+
     estimator[country] = estimatorCovid(**estimator_vals[country] )
 
     x_0 = datasets[country]['train']['array'][:,0]

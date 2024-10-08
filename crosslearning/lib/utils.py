@@ -15,7 +15,7 @@ import numpy as np
 #     return datasets_train, datasets_test
 
 def get_covid_datasets(countries: list, start: int, mid: int, end: int, key: str) -> list:
-    df = pd.read_csv('crosslearning/data/owid-covid-data.csv')
+    df = pd.read_csv('crosslearning/data/owid-covid-data-old.csv')
     datasets = {}
 
     for ele in countries:
@@ -27,7 +27,7 @@ def get_covid_datasets(countries: list, start: int, mid: int, end: int, key: str
     return datasets
 
 def get_SIR_covid_datasets(countries: list, start: int, mid: int, end: int) -> list:
-    df = pd.read_csv('crosslearning/data/owid-covid-data.csv')
+    df = pd.read_csv('crosslearning/data/owid-covid-data-old.csv')
     datasets = {}
 
     for ele in countries:
@@ -56,7 +56,7 @@ def plot_SIR_covid_datasets(countries: dict, num_cols: int = 3, fold: str = 'tra
     - figures: A list of figure objects (e.g., created using plt.figure()).
     """
     num_figures = len(countries)
-    num_rows = (num_figures + 1) // num_cols 
+    num_rows = (num_figures + 1) // num_cols
     # Create a single figure with subplots based on the number of figures
     fig = plt.figure(figsize=(15, 5))  # You can adjust figsize as needed
 
@@ -72,7 +72,7 @@ def plot_SIR_covid_datasets(countries: dict, num_cols: int = 3, fold: str = 'tra
         ax.plot(x,  countries[key][fold]['R'])  # You may need to adjust this based on your specific figures
         ax.set_title(key)
         ax.legend(['S','I','R'])
-        
-        # [i].axis('off') 
+
+        # [i].axis('off')
     plt.savefig('saved.pdf')
     pass

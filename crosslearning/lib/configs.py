@@ -1,10 +1,10 @@
 from lib.utils import *
 
 countries = [ 'URY','USA', 'ESP', 'ARG','BRA','MEX','PRY', 'ITA']
-
-start = 77
-mid = 110
-stop = 117
+#countries = [ 'ITA']
+start = 40
+mid = 150
+stop = mid + 1
 datasets = get_SIR_covid_datasets(countries, start, mid, stop)
 epochs = 5000
 logg_every_e = 200
@@ -19,7 +19,7 @@ estimator_vals['URY'] = {'epochs' : epochs,
                     'eta' : 1e-4/ datasets['URY']['population'],
                     'eta_cent' : [0],
                     'eta_dual' : eta_dual,
-                    'logging' : False, 
+                    'logging' : False,
                     'logg_every_e' : logg_every_e,
                     }
 estimator_vals['USA'] = {'epochs' : epochs,
@@ -30,7 +30,7 @@ estimator_vals['USA'] = {'epochs' : epochs,
                     'eta' : 1e-8/ datasets['USA']['population'],
                     'eta_cent' : [0],
                     'eta_dual' : eta_dual,
-                    'logging' : False, 
+                    'logging' : False,
                     'logg_every_e' : logg_every_e,
                     }
 estimator_vals['ESP'] = {'epochs' : epochs,
@@ -39,9 +39,9 @@ estimator_vals['ESP'] = {'epochs' : epochs,
                     'T' : 1,
                     'population' : datasets['ESP']['population'],
                     'eta' : 1e-7/ datasets['ESP']['population'],
-                    'eta_cent' : [0],                    
+                    'eta_cent' : [0],
                     'eta_dual' : eta_dual,
-                    'logging' : False, 
+                    'logging' : False,
                     'logg_every_e' : logg_every_e,
                     }
 estimator_vals['ARG'] = {'epochs' : epochs,
@@ -50,9 +50,9 @@ estimator_vals['ARG'] = {'epochs' : epochs,
                     'T' : 1,
                     'population' : datasets['ARG']['population'],
                     'eta' : 1e-4/ datasets['ARG']['population'],
-                    'eta_cent' : [0],                 
+                    'eta_cent' : [0],
                     'eta_dual' : eta_dual,
-                    'logging' : False, 
+                    'logging' : False,
                     'logg_every_e' : logg_every_e,
                     }
 estimator_vals['BRA'] = {'epochs' : epochs,
@@ -61,9 +61,9 @@ estimator_vals['BRA'] = {'epochs' : epochs,
                     'T' : 1,
                     'population' : datasets['BRA']['population'],
                     'eta' : 1e-4/ datasets['BRA']['population'],
-                    'eta_cent' : [0],                    
+                    'eta_cent' : [0],
                     'eta_dual' : eta_dual,
-                    'logging' : False, 
+                    'logging' : False,
                     'logg_every_e' : logg_every_e,
                     }
 estimator_vals['MEX'] = {'epochs' : epochs,
@@ -74,7 +74,7 @@ estimator_vals['MEX'] = {'epochs' : epochs,
                     'eta' : 1e-4/ datasets['MEX']['population'],
                     'eta_cent' : [0],
                     'eta_dual' : eta_dual,
-                    'logging' : False, 
+                    'logging' : False,
                     'logg_every_e' : logg_every_e,
                     }
 estimator_vals['PRY'] = {'epochs' : epochs,
@@ -83,9 +83,9 @@ estimator_vals['PRY'] = {'epochs' : epochs,
                     'T' : 1,
                     'population' : datasets['PRY']['population'],
                     'eta' : 1e-2/ datasets['PRY']['population'],
-                    'eta_cent' : [0],                    
+                    'eta_cent' : [0],
                     'eta_dual' : eta_dual,
-                    'logging' : False, 
+                    'logging' : False,
                     'logg_every_e' : logg_every_e,
                     }
 estimator_vals['ITA'] = {'epochs' : epochs,
@@ -93,10 +93,10 @@ estimator_vals['ITA'] = {'epochs' : epochs,
                     'gamma' : 2e-3,
                     'T' : 1,
                     'population' : datasets['ITA']['population'],
-                    'eta' : 1e-6/ datasets['ITA']['population'],
-                    'eta_cent' : [0],                    
+                    'eta' : 1e-6/ datasets['ITA']['population'],#LEO: changed from 1e-6
+                    'eta_cent' : [0],
                     'eta_dual' : eta_dual,
-                    'logging' : False, 
+                    'logging' : False,
                     'logg_every_e' : logg_every_e,
                     }
 ls_of_eta = [estimator_vals[key]['eta'] for key in estimator_vals.keys()]
@@ -109,7 +109,7 @@ estimator_vals['centralized'] = {'epochs' : epochs,
                     'eta' : 1e-18,
                     'eta_cent' : ls_of_eta,
                     'eta_dual' : eta_dual,
-                    'logging' : False, 
+                    'logging' : False,
                     'logg_every_e' : logg_every_e,
                     }
 estimator_vals['CLParametricSmall'] = {'epochs' : epochs,
@@ -122,7 +122,7 @@ estimator_vals['CLParametricSmall'] = {'epochs' : epochs,
                     # 'eta_dual' : 1e-3,
                     'eta_dual' : 1e0, # for smaller epsilons
                     # 'eta_dual' : 1e1,  # for larger epsilons
-                    'logging' : True, 
+                    'logging' : True,
                     'logg_every_e' : logg_every_e,
                     }
 estimator_vals['CLParametric'] = {'epochs' : epochs,
@@ -135,7 +135,7 @@ estimator_vals['CLParametric'] = {'epochs' : epochs,
                     # 'eta_dual' : 1e-3,
                     # 'eta_dual' : 1e2, # for smaller epsilons
                     'eta_dual' : 1e1,  # for larger epsilons
-                    'logging' : True, 
+                    'logging' : True,
                     'logg_every_e' : logg_every_e,
                     }
 eta = 1e-18
@@ -147,6 +147,6 @@ estimator_vals['CLFunctional'] = {'epochs' :  logg_every_e*epochs,
                     'eta' : eta,
                     'eta_cent' : [eta for key in estimator_vals.keys()],
                     'eta_dual' : 1e1,
-                    'logging' : True, 
+                    'logging' : True,
                     'logg_every_e' : logg_every_e,
                     }

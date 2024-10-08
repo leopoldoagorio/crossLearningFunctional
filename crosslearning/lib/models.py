@@ -3,16 +3,16 @@ from dataclasses import dataclass
 
 @dataclass
 class estimatorCovid:
-    
-    epochs : int 
+
+    epochs : int
     beta : 1
     gamma : 2
-    population : 1 
+    population : 1
     T : 1
-    eta : 1e-6
+    eta : 1e-12#1e-6
     eta_cent : [0]
     eta_dual : 1e-6
-    logging : False 
+    logging : False
     logg_every_e : 100
 
     def getUpdate(self,x):
@@ -20,7 +20,7 @@ class estimatorCovid:
         return x + np.array([-self.beta*x[0]*x[1]*self.T/self.population,
                               self.beta*x[0]*x[1]/self.population-self.gamma*x[1],
                               self.gamma*x[1]])
-    
+
     def getRolloutMatrix(self, x_0, steps):
         rollout = np.zeros((3,steps))
         rollout[:,0] = x_0
@@ -28,12 +28,13 @@ class estimatorCovid:
         for i in range(1,steps):
             # Predict SIR_T+1 given SIR_T
             rollout[:,i] = self.getUpdate(rollout[:,i-1])
+            #print(rollout[:,i])
 
         return rollout
 
     def getGradient(self, roll, X):
         nabla = np.zeros(2,) # beta, gamma
-        delta = roll[:, 1:] - X[:, 1:] 
+        delta = roll[:, 1:] - X[:, 1:]
         # print('delta', delta.shape,roll.shape)
         # TODO: FIX this bug, needs to accumulate
         # S_T+1 - S_T = -DeltaT beta IS
@@ -45,15 +46,23 @@ class estimatorCovid:
         dSdGamma = 0 # check dimensions
         dIdGamma = -X[1,1:]
         dRdGamma = X[1,1:]
-        
+
         nabla[0] = np.sum(np.multiply(delta[0,:], dSdBeta) ) \
                     + np.sum(np.multiply(delta[1,:], dIdBeta) )\
                     + np.sum(np.multiply(delta[2,:], dRdBeta) )
-        
+
         nabla[1] = np.sum(np.multiply(delta[0,:], dSdGamma) )\
                     + np.sum(np.multiply(delta[1,:], dIdGamma) )\
                     + np.sum(np.multiply(delta[2,:], dRdGamma) )
-        return nabla
+        nabla_alt = np.zeros(2,) #LEO: added this for check
+        nabla_alt[0] = 0*np.sum(np.multiply(delta[0,:], dSdBeta) ) \
+                    + np.sum(np.multiply(delta[1,:], dIdBeta) )\
+                    + np.sum(np.multiply(delta[2,:], dRdBeta) )
+
+        nabla_alt[1] = 0*np.sum(np.multiply(delta[0,:], dSdGamma) )\
+                    + np.sum(np.multiply(delta[1,:], dIdGamma) )\
+                    + np.sum(np.multiply(delta[2,:], dRdGamma) )
+        return nabla#_alt
 
     def fitIndependent(self, X):
         # X is a matrix (3,n)
@@ -61,24 +70,27 @@ class estimatorCovid:
         # I_{t+1} = I_{t} +\beta I S T / N - \gamma I
         # S_{t+1} = S_t + \gamma I_t T
         # R_0 = \beta / \gamma
-        
-        for e in range(self.epochs):
+
+        for e in range(10*self.epochs): #LEO: changed to 10*
+            if e < 10:
+                print(self.beta, self.gamma, self.eta)
+            #if e==2:
+            #    print(e)
             x_0 = X[:,0]
             roll = self.getRolloutMatrix(x_0, X.shape[1])
 
             nablaBeta, nablaGamma = self.getGradient(roll, X)
-            self.beta = self.beta - self.eta * nablaBeta
-            self.gamma = self.gamma - self.eta * nablaGamma
-            # print(self.beta, self.gamma)
+            self.beta = max(self.beta - self.eta * nablaBeta, 0)
+            self.gamma = max(self.gamma - self.eta * nablaGamma, 0)
         pass
-    
+
     def fitCentralized(self, datasets):
         # X is a matrix (3,n)
         # S_{t+1} = S_{t} - T \beta I S / N T
         # I_{t+1} = I_{t} +\beta I S T / N - \gamma I
         # S_{t+1} = S_t + \gamma I_t T
         # R_0 = \beta / \gamma
-        
+
         for e in range(self.epochs):
             nablaBetaAcc, nablaGammaAcc = 0, 0
             for idx, thisDataset in enumerate(datasets):
@@ -101,7 +113,7 @@ class estimatorCovid:
         self.betaCentral = betaInit
         self.gammaCentral = gammaInit
         pass
-    
+
     def getLambdaA(self, mus):
         lambdas = np.divide(mus,mus+1)
         a = 1/np.linalg.norm(np.append(lambdas,1), 1)
@@ -128,7 +140,7 @@ class estimatorCovid:
             mus = np.maximum(mus,0)
             # Update Values
             lambdas, a = self.getLambdaA(mus)
-            
+
             for i in range(len(self.betaIndependent)):
                 theta_g_aux = a*(theta_g+theta_i@lambdas)
                 theta_i_aux = np.multiply(theta_i, (1-lambdas)) + theta_g_aux[:,np.newaxis]@lambdas[np.newaxis,:]
@@ -162,8 +174,8 @@ class estimatorCovid:
                 # Compute the update
                 self.population = population
                 x_0 = data[:,0]
-                self.beta = self.betaIndependent[idx] 
-                self.gamma = self.gammaIndependent[idx] 
+                self.beta = self.betaIndependent[idx]
+                self.gamma = self.gammaIndependent[idx]
                 roll = self.getRolloutMatrix(x_0, data.shape[1])
                 nablaBeta, nablaGamma = self.getGradient(roll, data)
                 self.betaIndependent[idx] = self.betaIndependent[idx] - self.eta_cent[idx] * nablaBeta
@@ -180,8 +192,8 @@ class estimatorCovid:
             # Compute the update
             self.population = population
             x_0 = data[:,0]
-            self.beta = self.betaIndependent[idx] 
-            self.gamma = self.gammaIndependent[idx] 
+            self.beta = self.betaIndependent[idx]
+            self.gamma = self.gammaIndependent[idx]
             roll = self.getRolloutMatrix(x_0, data.shape[1])
             self.beta = self.betaCentral
             self.gamma = self.gammaCentral
@@ -198,12 +210,12 @@ class estimatorCovid:
         self.betaIndependent = [self.beta for i in range(len(datasets))]
         self.gammaIndependent = [self.gamma for i in range(len(datasets))]
         self.lambdas = [0. for i in range(len(datasets))]
-        
+
         self.betaCentral = self.beta
         self.gammaCentral = self.gamma
         self.epsilon = epsilon
         if self.logging == True:
-            self.logger = [{'lambdas': [], 'constraints': []} for i in range(len(datasets))] 
+            self.logger = [{'lambdas': [], 'constraints': []} for i in range(len(datasets))]
 
         for e in range(self.epochs):
             nablaBetaCentAccum, nablaGammaCentAccum = 0, 0
@@ -213,11 +225,11 @@ class estimatorCovid:
                 self.population = population
                 x_0 = data[:,0]
                 # First get matrix for the country wise
-                self.beta = self.betaIndependent[idx] 
-                self.gamma = self.gammaIndependent[idx] 
+                self.beta = self.betaIndependent[idx]
+                self.gamma = self.gammaIndependent[idx]
                 roll = self.getRolloutMatrix(x_0, data.shape[1])
                 nablaBeta, nablaGamma = self.getGradient(roll, data)
-                
+
                 # Now get the matrix for the centralized
                 self.beta = self.betaCentral
                 self.gamma = self.gammaCentral
@@ -227,7 +239,7 @@ class estimatorCovid:
                 # Now compute the gradient
                 self.betaIndependent[idx] = self.betaIndependent[idx] - self.eta_cent[idx] * (nablaBeta + self.lambdas[idx]*nablaBetaCent)
                 self.gammaIndependent[idx] = self.gammaIndependent[idx] - self.eta_cent[idx] * (nablaGamma + self.lambdas[idx]*nablaGammaCent)
-                
+
                 # Now compute the gradient for the centralized
                 nablaBetaCent, nablaGammaCent = self.getGradient(rollCentral, roll)
                 nablaBetaCentAccum = nablaBetaCentAccum + nablaBetaCent
@@ -236,11 +248,11 @@ class estimatorCovid:
                     self.lambdas[idx] = self.lambdas[idx] + self.eta_dual*(np.linalg.norm(roll-rollCentral)**2/population-self.epsilon**2)
                     self.lambdas[idx] = np.maximum(self.lambdas[idx],0)
                     # print(f"epoch{e}, index {idx}, lambdas {self.lambdas[idx]}, constraint {np.linalg.norm(roll-rollCentral)**2/population}")
-                          
-                        #   self.eta_dual/population*(np.linalg.norm(roll-rollCentral)**2-self.epsilon**2), 
-                        #   self.eta_dual, 
+
+                        #   self.eta_dual/population*(np.linalg.norm(roll-rollCentral)**2-self.epsilon**2),
+                        #   self.eta_dual,
                         #   population)
-            
+
             # Update the centralized
             self.betaCentral = self.betaCentral - self.eta * nablaBetaCentAccum
             self.gammaCentral = self.gammaCentral - self.eta * nablaGammaCentAccum
@@ -256,7 +268,7 @@ class estimatorCovid:
         x_0 = X[:,0]
         roll = self.getRolloutMatrix(x_0, X.shape[1])
         return np.linalg.norm(roll-X)
-    
+
     def evaluateIndependent(self, X, population):
         x_0 = X[:,0]
         gamma = self.gamma
@@ -271,13 +283,13 @@ class estimatorCovid:
             errors = errors + [np.linalg.norm(roll-X)]
 
         self.gamma = gamma
-        self.beta = beta 
+        self.beta = beta
         return errors
 
 
-        
+
 
 # ToD0:
-# Normalize the Infected and Susecptible 
+# Normalize the Infected and Susecptible
 
-# Plot beta and gamma 
+# Plot beta and gamma
