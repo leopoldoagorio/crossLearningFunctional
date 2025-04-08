@@ -2,8 +2,8 @@ import numpy as np
 import pandas as pd
 #import os
 import matplotlib.pyplot as plt
-from lib.models import *
-from lib.configs import datasets, countries, estimator_vals,logg_every_e
+#from lib.models import *
+#from lib.configs import datasets, countries, estimator_vals,logg_every_e
 
 from scipy.integrate import odeint
 from scipy.optimize import curve_fit
@@ -37,7 +37,7 @@ class SIRModel:
         normSdata = np.sum((S_data)**2)
         normIdata = np.sum((I_data)**2)
         normRdata = np.sum((R_data)**2)
-        error = np.log(np.sum(0*(S_model - S_data) ** 2 + (I_model - I_data) ** 2 + 0*(R_model - R_data) ** 2))
+        error = np.sum((S_model - S_data) ** 2 + (I_model - I_data) ** 2 + (R_model - R_data) ** 2)
         #print("NormSdata: ", normSdata/normSdata, "NormIdata: ", normIdata/normSdata, "NormRdata: ", normRdata/normSdata)
         #error = np.sum((S_model - S_data) ** 2/normSdata + 80000*(I_model - I_data) ** 2/normIdata + (R_model - R_data) ** 2/normRdata)
         #print("Error S: ", np.sum((S_model - S_data) ** 2)/np.sum((S_model - S_data) ** 2), "Error I: ", np.sum((I_model - I_data) ** 2)/np.sum((S_model - S_data) ** 2), "Error R: ", np.sum((R_model - R_data) ** 2)/np.sum((S_model - S_data) ** 2))
@@ -67,13 +67,6 @@ class SIRModel:
         self.beta, self.gamma = params  # Store the fitted beta and gamma
         return self.beta, self.gamma
 
-    def fit_3points(self, t_data, S_data, I_data, R_data, t2, initial_guess=(0.3, 0.1)):
-        '''Fit the model using the start, the maximum point, and a set point late in the epidemic'''
-        y2dot = (I_data[t2] -I_data[t2-10])/10
-        Imax = np.max(I_data)
-        tmax = np.argmax(I_data)
-
-
     def beta_gamma_contour_plots(self, t_data, S_data, I_data, R_data):
         # Generate beta and gamma values for the contour plot
             # z_values = np.linspace(0.0, 1.0, 100)
@@ -94,8 +87,8 @@ class SIRModel:
         #beta_values = (w_values - z_values)/2
         #gamma_values = (w_values + z_values)/2
 
-        beta_values = np.linspace(0.01, 3.0, 100)
-        gamma_values = np.linspace(0.01, 3.0, 100)
+        beta_values = np.linspace(0.01, 1.0, 100)
+        gamma_values = np.linspace(0.01, 1.0, 100)
         beta_mesh, gamma_mesh = np.meshgrid(beta_values, gamma_values)
 
         # Compute the objective function for each pair of beta and gamma values
@@ -115,52 +108,40 @@ class SIRModel:
 
 
 # Load dataset
-df = pd.read_csv('crosslearning/data/owid-covid-data-old.csv')
+df = pd.read_csv('crossLearningFunctional/crosslearning/data/fake_sir_data_v3.csv')
 
 # Extract data (assuming datasets format)
-country = 'ITA'
-y0 = datasets[country]['train']['array'][:, 0]  # Initial conditions (S0, I0, R0)
-S_data = datasets[country]['train']['array'][0, :]  # Susceptible data
-I_data = datasets[country]['train']['array'][1, :]  # Infected data
-R_data = datasets[country]['train']['array'][2, :]  # Recovered/Removed data
+# country = 'ITA'
+# y0 = datasets[country]['train']['array'][:, 0]  # Initial conditions (S0, I0, R0)
+# S_data = datasets[country]['train']['array'][0, :]  # Susceptible data
+# I_data = datasets[country]['train']['array'][1, :]  # Infected data
+# R_data = datasets[country]['train']['array'][2, :]  # Recovered/Removed data
 
-# deduct 58 millions from S_data
-S_data = S_data- 38000000
-y0[0] = y0[0] - 38000000
+country = 'fakistan'
 
-def cutdata(S_data, I_data, R_data):
-    # Cut data to include, Imax, and up until I = 0.9*Imax
-    Imax = np.max(I_data)
-    tmax = np.argmax(I_data)
-    t2 = np.where(I_data > 0.9 * Imax)[0][-1]
-    print(I_data>0.6*Imax)
-    print("Imax: ", Imax, "tmax: ", tmax, "t2: ", t2)
-    S_data = S_data[:t2]
-    I_data = I_data[:t2]
-    R_data = R_data[:t2]
-    return S_data, I_data, R_data, t2
+y0 = df.iloc[0, :].to_numpy()  # Initial conditions (S0, I0, R0)
+S_data = df['S'].to_numpy()  # Susceptible data
+I_data = df['I'].to_numpy()  # Infected data
+R_data = df['R'].to_numpy()  # Recovered/Removed data
 
-S_data, I_data, R_data, _ = cutdata(S_data, I_data, R_data)
-
-#mean diff (S_data+R_data+I_data)
-print("Mean diff: ", np.mean(np.diff(S_data+R_data+I_data)), "Min diff", np.min(np.diff(S_data+R_data+I_data)), "Max diff", np.max(np.diff(S_data+R_data+I_data)))
 
 # save S, I, R data to csv
-df = pd.DataFrame({'S': S_data, 'I': I_data, 'R': R_data})
-df.to_csv('crosslearning/data/SIR_data+'+country+'.csv', index=False)
+#df = pd.DataFrame({'S': S_data, 'I': I_data, 'R': R_data})
+#df.to_csv('crosslearning/data/SIR_data+'+country+'.csv', index=False)
 
 
 t_data = np.arange(len(I_data))  # Time data
-initial_guess = (2.5*1.205, 2.5*1.15)  # Initial guess for beta and gamma
+initial_guess = (0.3, 0.1)  # Initial guess for beta and gamma
 
 # Create SIR model and fit the data using all three compartments
 sir_model = SIRModel(y0)
-params = sir_model.fit_objective(t_data, S_data, I_data, R_data)
+#params = sir_model.fit_concat(t_data, S_data, I_data, R_data)
+params = sir_model.fit_onlyI(t_data, S_data, I_data, R_data)
 print(f"Fitted parameters: beta={params[0]:.4f}, gamma={params[1]:.4f}")
 
 # Overwrite beta=0.2026, gamma=0.1850
 #params = np.array([0.29, 0.265])
-#params = np.array([2.2, 1.99])
+#params = np.array([0.7995, 0.8005])
 
 # Generate fitted curve for plotting
 t_fit = np.linspace(0, len(I_data), 1000)  # Time for plotting
@@ -168,23 +149,9 @@ S_fit, I_fit, R_fit = sir_model.rollout_sir(t_fit, *params)
 
 # Plot Susceptible, Infected, and Recovered data and model fits
 
-#alpha = beta*s/N-gamma
-# alpha = params[0]*S_data/(S_data+I_data+R_data)-params[1]
-# alpha = params[0]*S_fit/(S_fit+I_fit+R_fit)-params[1]
-# print(S_data/(S_data+I_data+R_data))
-# #plot alpha
-# plt.figure(figsize=(10, 6))
-# plt.plot(t_fit, alpha, 'o', label='Alpha')
-# plt.xlabel('Time')
-# plt.ylabel('Alpha')
-# plt.title('Alpha')
-# plt.legend()
-# plt.show()
-
-#Plot Susceptible
+# Plot Susceptible
 # plt.figure(figsize=(10, 6))
 # plt.plot(t_data, S_data, 'o', label='Observed Susceptible')
-# plt.plot(t_fit, S_fit, '-', label='Fitted Susceptible Curve')
 # plt.xlabel('Time')
 # plt.ylabel('Susceptible Population')
 # plt.title('SIR Model Fitting: Susceptible Population')

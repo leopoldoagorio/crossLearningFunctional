@@ -26,11 +26,22 @@ def get_covid_datasets(countries: list, start: int, mid: int, end: int, key: str
 
     return datasets
 
-def get_SIR_covid_datasets(countries: list, start: int, mid: int, end: int) -> list:
-    df = pd.read_csv('crosslearning/data/owid-covid-data-old.csv')
+def get_SIR_covid_datasets(countries: list, start_l: list, mid_l: list, end_l: list) -> list:
+    df = pd.read_csv('/home/leopoldo/Documents/Cross Learning/crossLearningFunctional/crosslearning/data/owid-covid-data-old.csv')
     datasets = {}
 
-    for ele in countries:
+    C = len(countries)
+    #print('Entering loop get_SIR_covid_datasets')
+    #print(start)
+
+    #for ele in countries:
+    for i in range(C):
+        ele = countries[i]
+
+        start = start_l[i]
+        mid = mid_l[i]
+        end = end_l[i]
+
         thisCountryTrain = {}
         thisCountryTrain['S'] = df[df["iso_code"] == ele]['population'].to_numpy()[start:mid] - df[df["iso_code"] == ele]['total_cases'].fillna(0).to_numpy()[start:mid]
         thisCountryTrain['I'] = df[df["iso_code"] == ele]['new_cases'].fillna(0).rolling(14).sum().fillna(0).to_numpy()[start:mid]
